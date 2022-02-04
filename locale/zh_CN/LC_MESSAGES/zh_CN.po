@@ -1,0 +1,72 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: main\n"
+"POT-Creation-Date: 2022-02-04 06:27-0600\n"
+"PO-Revision-Date: 2022-02-04 06:28-0600\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.0.1\n"
+"X-Poedit-Basepath: ../../..\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-SearchPath-0: lang.py\n"
+
+#: lang.py:16
+msgid "Input crypto\n"
+msgstr "输入币种\n"
+
+#: lang.py:19
+msgid "Input LP position size in USDT. Input 0 to resume.\n"
+msgstr "输入LP大小，单位USDT。输入0恢复现有仓位。\n"
+
+#: lang.py:22
+msgid "Input grid size, i.e. 1%\n"
+msgstr "输入网格大小，如1%\n"
+
+#: lang.py:25
+msgid "Insufficient USDT"
+msgstr "USDT余额不足"
+
+#: lang.py:28
+msgid "Input q to abort\n"
+msgstr "输入q中止\n"
+
+#: lang.py:31
+msgid "Crypto {:s} does not exist."
+msgstr "{:s}币种不存在。"
+
+#: lang.py:34
+msgid "Realized volatility={:7.2%}"
+msgstr "实现波动率={:7.2%}"
+
+#: lang.py:37
+msgid "Cancelled {} orders."
+msgstr "已取消{}订单。"
+
+#: lang.py:40
+msgid "Use larger grid."
+msgstr "用更大网格。"
+
+#: lang.py:43
+msgid "Grid index"
+msgstr "格子"
+
+#: lang.py:46
+msgid "Spot size"
+msgstr "现货仓位"
+
+#: lang.py:49
+msgid "Price"
+msgstr "价格"
+
+#: lang.py:52
+msgid "Side"
+msgstr "方向"
+
+#: lang.py:55
+msgid "State"
+msgstr "状态"
