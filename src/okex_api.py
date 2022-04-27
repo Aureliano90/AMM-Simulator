@@ -1,51 +1,44 @@
-import okex.account as account
-import okex.public as public
-import okex.trade as trade
-import config
-import record
-from utils import *
+from okex.account import AccountAPI
+from okex.public import PublicAPI
+from okex.trade import TradeAPI
+from src.config import Key
+from src.manager import *
 from asyncio import create_task, gather
-from websocket import subscribe, subscribe_without_login
+
+manager = Manager()
 
 
 @call_coroutine
 # @debug_timer
-class OKExAPI(object):
+class OKExAPI:
     """基本OKEx功能类
     """
     api_initiated = False
-    asleep = 0.
     __key = None
-
-    @property
-    def __name__(self):
-        return 'OKExAPI'
 
     def __init__(self, coin: str = None, accountid=3):
         self.accountid = accountid
 
         if not OKExAPI.api_initiated:
-            apikey = config.Key(accountid)
+            apikey = Key(accountid)
             api_key = apikey.api_key
             secret_key = apikey.secret_key
             passphrase = apikey.passphrase
             OKExAPI.__key = dict(api_key=api_key, passphrase=passphrase, secret_key=secret_key)
             if accountid == 3:
-                OKExAPI.accountAPI = account.AccountAPI(api_key, secret_key, passphrase, test=True)
-                OKExAPI.tradeAPI = trade.TradeAPI(api_key, secret_key, passphrase, test=True)
-                OKExAPI.publicAPI = public.PublicAPI(test=True)
-                # OKExAPI.public_url = 'wss://wspap.okx.com:8443/ws/v5/public'
-                # OKExAPI.private_url = 'wss://wspap.okx.com:8443/ws/v5/private'
-                OKExAPI.public_url = 'wss://wspap.okex.com:8443/ws/v5/public?brokerId=9999'
-                OKExAPI.private_url = 'wss://wspap.okex.com:8443/ws/v5/private?brokerId=9999'
+                OKExAPI.accountAPI = AccountAPI(api_key, secret_key, passphrase, test=True)
+                OKExAPI.tradeAPI = TradeAPI(api_key, secret_key, passphrase, test=True)
+                OKExAPI.publicAPI = PublicAPI(test=True)
+                OKExAPI.public_url = 'wss://wspap.okx.com:8443/ws/v5/public?brokerId=9999'
+                OKExAPI.private_url = 'wss://wspap.okx.com:8443/ws/v5/private?brokerId=9999'
             else:
-                OKExAPI.accountAPI = account.AccountAPI(api_key, secret_key, passphrase, False)
-                OKExAPI.tradeAPI = trade.TradeAPI(api_key, secret_key, passphrase, False)
-                OKExAPI.publicAPI = public.PublicAPI()
-                # OKExAPI.public_url = 'wss://ws.okx.com:8443/ws/v5/public'
-                # OKExAPI.private_url = 'wss://ws.okx.com:8443/ws/v5/private'
-                OKExAPI.public_url = 'wss://ws.okex.com:8443/ws/v5/public'
-                OKExAPI.private_url = 'wss://ws.okex.com:8443/ws/v5/private'
+                OKExAPI.accountAPI = AccountAPI(api_key, secret_key, passphrase, False)
+                OKExAPI.tradeAPI = TradeAPI(api_key, secret_key, passphrase, False)
+                OKExAPI.publicAPI = PublicAPI()
+                OKExAPI.public_url = 'wss://ws.okx.com:8443/ws/v5/public'
+                OKExAPI.private_url = 'wss://ws.okx.com:8443/ws/v5/private'
+                # OKExAPI.public_url = 'wss://wsaws.okx.com:8443/ws/v5/public'
+                # OKExAPI.private_url = 'wss://wsaws.okx.com:8443/ws/v5/private'
             OKExAPI.api_initiated = True
 
         self.coin = coin
@@ -71,8 +64,13 @@ class OKExAPI(object):
                 self.spot_info = create_task(self.spot_inst())
                 yield from self.spot_info
                 self.spot_info = self.spot_info.result()
+                self.min_size = float(self.spot_info['minSz'])
+                self.size_increment = float(self.spot_info['lotSz'])
+                self.size_decimals = num_decimals(self.spot_info['lotSz'])
+                self.tick_size = float(self.spot_info['tickSz'])
+                self.tick_decimals = num_decimals(self.spot_info['tickSz'])
             except Exception as e:
-                fprint(f'{self.__name__}__await__({self.coin}) error')
+                fprint(f'{type(self).__name__}__await__({self.coin}) error')
                 fprint(e)
                 self.exist = False
                 fprint(lang.nonexistent_crypto.format(self.coin))
@@ -81,13 +79,13 @@ class OKExAPI(object):
         return self
 
     @staticmethod
-    def clean():
+    async def aclose():
         if hasattr(OKExAPI, 'accountAPI'):
-            OKExAPI.accountAPI.__del__()
+            await OKExAPI.accountAPI.aclose()
         if hasattr(OKExAPI, 'tradeAPI'):
-            OKExAPI.tradeAPI.__del__()
+            await OKExAPI.tradeAPI.aclose()
         if hasattr(OKExAPI, 'publicAPI'):
-            OKExAPI.publicAPI.__del__()
+            await OKExAPI.publicAPI.aclose()
 
     @staticmethod
     def _key():

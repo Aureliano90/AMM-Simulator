@@ -5,7 +5,6 @@ language = 'cn'
 
 
 class Key:
-
     def __init__(self, account=1):
         if account == 1:
             self.api_key = ""
@@ -21,6 +20,6 @@ class Key:
             self.secret_key = ""
             self.passphrase = ""
         else:
-            import lang
-            print(lang.nonexistent_account)
+            import src.lang
+            print(src.lang.nonexistent_account)
             exit()

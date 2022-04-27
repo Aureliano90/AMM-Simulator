@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: main\n"
-"POT-Creation-Date: 2022-02-04 06:28-0600\n"
-"PO-Revision-Date: 2022-02-04 06:28-0600\n"
+"POT-Creation-Date: 2022-04-27 06:30-0500\n"
+"PO-Revision-Date: 2022-04-27 06:30-0500\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: en\n"
@@ -11,7 +11,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 3.0.1\n"
-"X-Poedit-Basepath: ../../..\n"
+"X-Poedit-Basepath: ../../../src\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-SearchPath-0: lang.py\n"
 
@@ -36,37 +36,78 @@ msgid "Input q to abort\n"
 msgstr ""
 
 #: lang.py:31
-msgid "Crypto {:s} does not exist."
+msgid "Account does not exist."
 msgstr ""
 
 #: lang.py:34
-msgid "Realized volatility={:7.2%}"
+msgid "Crypto {:s} does not exist."
 msgstr ""
 
 #: lang.py:37
-msgid "Cancelled {} orders."
+msgid "Realized volatility={:7.2%}"
 msgstr ""
 
 #: lang.py:40
-msgid "Use larger grid."
+msgid "Cancelled {} {} orders."
 msgstr ""
 
 #: lang.py:43
-msgid "Grid index"
+msgid "Placed {} {} orders."
 msgstr ""
 
 #: lang.py:46
-msgid "Spot size"
+msgid "Use larger grid."
 msgstr ""
 
 #: lang.py:49
-msgid "Price"
+msgid "Grid index"
 msgstr ""
 
 #: lang.py:52
-msgid "Side"
+msgid "Spot size"
 msgstr ""
 
 #: lang.py:55
+msgid "Price"
+msgstr ""
+
+#: lang.py:58
+msgid "Side"
+msgstr ""
+
+#: lang.py:61
 msgid "State"
+msgstr ""
+
+#: lang.py:64
+msgid ""
+"\n"
+"1   Open new LP\n"
+"2   Task manager\n"
+"q   Quit\n"
+msgstr ""
+
+#: lang.py:75
+msgid ""
+"\n"
+"1   Task list\n"
+"2   Remove completed tasks\n"
+"3   Stop all\n"
+"b   Back"
+msgstr ""
+
+#: lang.py:86
+msgid ""
+"\n"
+"1   Cancel\n"
+"2   Modify attribute\n"
+"b   Back"
+msgstr ""
+
+#: lang.py:95
+msgid "Wrong command"
+msgstr ""
+
+#: lang.py:98
+msgid " is cancelled."
 msgstr ""

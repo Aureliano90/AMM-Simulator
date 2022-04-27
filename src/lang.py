@@ -1,14 +1,14 @@
 import gettext
 import os
-import config
+from src.config import language
 
 APP_NAME = "main"
-LOCALE_DIR = os.path.abspath("locale")
+LOCALE_DIR = os.path.abspath("./locale")
 currentDir = os.path.dirname(os.path.realpath(__file__))
 lang_zh_CN = gettext.translation(APP_NAME, LOCALE_DIR, ["zh_CN"])
 lang_en = gettext.translation(APP_NAME, LOCALE_DIR, ["en"])
 
-if config.language == 'cn':
+if language == 'cn':
     lang_zh_CN.install()
 else:
     lang_en.install()
@@ -37,8 +37,11 @@ nonexistent_crypto = _('Crypto {:s} does not exist.')
 rv = _('Realized volatility={:7.2%}')
 # "实现波动率={:7.2%}"
 
-cancelled_orders = _('Cancelled {} orders.')
-# "已取消{}订单。"
+cancelled_orders = _('Cancelled {} {} orders.')
+# "已取消{} {}订单。"
+
+placed_orders = _('Placed {} {} orders.')
+# "已下{} {}订单。"
 
 use_larger_grid = _('Use larger grid.')
 # "用更大网格。"
@@ -57,3 +60,40 @@ side = _('Side')
 
 state = _('State')
 # "状态"
+
+main_menu_text = _("""
+1   Open new LP
+2   Task manager
+q   Quit
+""")
+# """
+# 1   创建新LP
+# 2   任务管理器
+# q   退出
+# """
+
+manager_menu = _("""
+1   Task list
+2   Remove completed tasks
+3   Stop all
+b   Back""")
+# """
+# 1   任务列表
+# 2   清理已完成
+# 3   全部停止
+# b   返回"""
+
+manager_sub_menu = _("""
+1   Cancel
+2   Modify attribute
+b   Back""")
+# """
+# 1   取消
+# 2   更改属性
+# b   返回"""
+
+wrong_command = _('Wrong command')
+# "错误指令"
+
+cancelled = _(' is cancelled.')
+# "已取消。"

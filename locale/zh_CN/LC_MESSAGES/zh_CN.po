@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: main\n"
-"POT-Creation-Date: 2022-02-04 06:27-0600\n"
-"PO-Revision-Date: 2022-02-04 06:28-0600\n"
+"POT-Creation-Date: 2022-04-27 06:30-0500\n"
+"PO-Revision-Date: 2022-04-27 06:30-0500\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: zh_CN\n"
@@ -11,7 +11,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 3.0.1\n"
-"X-Poedit-Basepath: ../../..\n"
+"X-Poedit-Basepath: ../../../src\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-SearchPath-0: lang.py\n"
 
@@ -36,37 +36,91 @@ msgid "Input q to abort\n"
 msgstr "输入q中止\n"
 
 #: lang.py:31
+msgid "Account does not exist."
+msgstr "账户不存在。"
+
+#: lang.py:34
 msgid "Crypto {:s} does not exist."
 msgstr "{:s}币种不存在。"
 
-#: lang.py:34
+#: lang.py:37
 msgid "Realized volatility={:7.2%}"
 msgstr "实现波动率={:7.2%}"
 
-#: lang.py:37
-msgid "Cancelled {} orders."
-msgstr "已取消{}订单。"
-
 #: lang.py:40
+msgid "Cancelled {} {} orders."
+msgstr "已取消{} {}订单。"
+
+#: lang.py:43
+msgid "Placed {} {} orders."
+msgstr "已下{} {}订单。"
+
+#: lang.py:46
 msgid "Use larger grid."
 msgstr "用更大网格。"
 
-#: lang.py:43
+#: lang.py:49
 msgid "Grid index"
 msgstr "格子"
 
-#: lang.py:46
+#: lang.py:52
 msgid "Spot size"
 msgstr "现货仓位"
 
-#: lang.py:49
+#: lang.py:55
 msgid "Price"
 msgstr "价格"
 
-#: lang.py:52
+#: lang.py:58
 msgid "Side"
 msgstr "方向"
 
-#: lang.py:55
+#: lang.py:61
 msgid "State"
 msgstr "状态"
+
+#: lang.py:64
+msgid ""
+"\n"
+"1   Open new LP\n"
+"2   Task manager\n"
+"q   Quit\n"
+msgstr ""
+"\n"
+"1   创建新LP\n"
+"2   任务管理器\n"
+"q   退出\n"
+
+#: lang.py:75
+msgid ""
+"\n"
+"1   Task list\n"
+"2   Remove completed tasks\n"
+"3   Stop all\n"
+"b   Back"
+msgstr ""
+"\n"
+"1   任务列表\n"
+"2   清理已完成\n"
+"3   全部停止\n"
+"b   返回"
+
+#: lang.py:86
+msgid ""
+"\n"
+"1   Cancel\n"
+"2   Modify attribute\n"
+"b   Back"
+msgstr ""
+"\n"
+"1   取消\n"
+"2   更改属性\n"
+"b   返回"
+
+#: lang.py:95
+msgid "Wrong command"
+msgstr "错误指令"
+
+#: lang.py:98
+msgid " is cancelled."
+msgstr "已取消。"

@@ -1,16 +1,14 @@
 from datetime import datetime
 import json
 from . import consts as c, utils, exceptions
-from codedict import codes
+from src.codedict import codes
 import asyncio
 import requests
 import httpx
 
 
 class Client(object):
-
     def __init__(self, api_key, api_secret_key, passphrase, use_server_time=False, test=False):
-
         self.API_KEY = api_key
         self.API_SECRET_KEY = api_secret_key
         self.PASSPHRASE = passphrase
@@ -18,16 +16,9 @@ class Client(object):
         self.test = test
         self.client = httpx.AsyncClient(base_url=c.API_URL, http2=True, follow_redirects=True)
 
-    def __del__(self):
-        # print("Client del started")
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # print('Event loop is running. Create __del__ task.')
-            loop.create_task(self.client.aclose())
-        else:
-            # print('Event loop closed. Run __del__ until complete.')
-            loop.run_until_complete(self.client.aclose())
-        # print("Client del finished")
+    async def aclose(self):
+        if not self.client.is_closed:
+            await self.client.aclose()
 
     async def _get_timestamp(self):
         url = c.SERVER_TIMESTAMP_URL
@@ -86,26 +77,26 @@ class Client(object):
                 await asyncio.sleep(30)
                 continue
             else:
+                # Cloudflare error
+                if str(response.status_code).startswith('5'):
+                    # print(response)
+                    retry += 1
+                    await asyncio.sleep(30)
+                    continue
                 try:
                     json_res = response.json()
                 except ValueError:
                     raise exceptions.OkexRequestException(f'Invalid Response: {response.text}')
                 # Endpoint request timeout
-                if json_res['code'] == '50004':
+                if hasattr(json_res, 'code') and json_res['code'] == '50004':
                     retry += 1
                     await asyncio.sleep(2)
                     continue
                 # Requests too frequent
                 if response.status_code == 429:
                     retry += 1
-                    print(request_path, codes[json_res.code])
+                    print(request_path, codes[json_res['code']])
                     await asyncio.sleep(2)
-                    continue
-                # Cloudflare error
-                if str(response.status_code).startswith('5'):
-                    # print(response)
-                    retry += 1
-                    await asyncio.sleep(30)
                     continue
                 success = True
 

@@ -1,29 +1,21 @@
 from math import sqrt
-
-from okex_api import *
-from utils import *
+from src.okex_api import *
+import src.record as record
+from src.websocket import subscribe
 
 
 class AMM(OKExAPI):
-
-    @property
-    def __name__(self):
-        return 'AMM'
-
     def __init__(self, coin=None, accountid=3):
         super().__init__(coin=coin, accountid=accountid)
 
-    @run_with_cancel
+    @manager.submit
     async def lp(self, usdt=0, grid_size=0.01):
+        """Start simulating an LP
+        """
         begin = timestamp = datetime.utcnow()
         # Risk-free interest rate
         r = 0.05
         grid_num = 20
-        min_size = float(self.spot_info['minSz'])
-        size_increment = float(self.spot_info['lotSz'])
-        size_decimals = num_decimals(self.spot_info['lotSz'])
-        tick_size = float(self.spot_info['tickSz'])
-        tick_decimals = num_decimals(self.spot_info['tickSz'])
         trade_fee, usdt_balance, spot_ticker, spot_position = await gather(
             self.accountAPI.get_trade_fee(instType='SPOT', instId=self.spot_ID), self.usdt_balance(),
             self.publicAPI.get_specific_ticker(self.spot_ID), self.spot_position())
@@ -49,8 +41,8 @@ class AMM(OKExAPI):
 
         n1 = ni = sqrt(k / last)
         if spot_position < ni:
-            spot_size = round_to((ni - spot_position) / (1 + taker_fee), size_increment)
-            if spot_size >= min_size:
+            spot_size = round_to((ni - spot_position) / (1 + taker_fee), self.size_increment)
+            if spot_size >= self.min_size:
                 spot_order = await self.tradeAPI.take_spot_order(instId=self.spot_ID, side='buy', size=spot_size,
                                                                  tgtCcy='base_ccy', order_type='market')
                 assert spot_order['ordId'] != '-1', fprint(spot_order)
@@ -65,6 +57,8 @@ class AMM(OKExAPI):
                     Record.mycol.insert_one(mydict)
 
         def stat():
+            """Calculate APR and volatility
+            """
             pipeline = [
                 {'$match': {'account': self.accountid, 'instrument': self.coin, 'timestamp': {'$gt': begin}}},
                 {'$group': {'_id': '$instrument', 'cash_notional': {'$sum': '$cash_notional'},
@@ -84,7 +78,7 @@ class AMM(OKExAPI):
                 sigma2 = - (theta - r * 0.5 * lp_value) / (0.5 * spot_price ** 2 * gamma)
                 if sigma2 > 0:
                     sigma = sqrt(sigma2)
-                    fprint(f'LP APR={theta / lp_value:7.2%}')
+                    fprint(f'{self.coin} LP APR={theta / lp_value:7.2%}')
                     fprint(lang.rv.format(sigma))
                 else:
                     fprint(f'{sigma2=:7.2%}, {(theta - r * 0.5 * lp_value) / lp_value=:7.2%}')
@@ -99,7 +93,7 @@ class AMM(OKExAPI):
                       else dict(instId=self.spot_ID, clOrdId=order['clOrdId']) for order in pending]
             if orders:
                 await self.tradeAPI.batch_cancel(orders)
-                fprint(lang.cancelled_orders.format(len(orders)))
+                fprint(lang.cancelled_orders.format(len(orders), self.coin))
 
         await cancel_orders()
 
@@ -108,52 +102,57 @@ class AMM(OKExAPI):
         b = 1 / a
 
         async def init_grids():
+            """Place initial orders on the grid
+            """
             nonlocal grids
             orders = []
             grids.append(dict(index=grid_num // 2, price=last, order=None))
             index = grid_num // 2 + 1
-            sell_price = round_to(last * a ** 2, tick_size)
-            sell_size = round_to(ni * (1 - b), size_increment)
-            while sell_size >= min_size and abs(index - grid_num // 2) <= grid_num // 2:
+            sell_price = round_to(last * a ** 2, self.tick_size)
+            sell_size = round_to(ni * (1 - b), self.size_increment)
+            while sell_size >= self.min_size and abs(index - grid_num // 2) <= grid_num // 2:
                 order = dict(instId=self.spot_ID, tdMode='cash', side='sell', ordType='limit',
-                             clOrdId=self.coin + 'grid' + str(index), px=float_str(sell_price, tick_decimals),
-                             sz=float_str(sell_size, size_decimals))
+                             clOrdId=self.coin + 'sellgrid' + str(index), px=float_str(sell_price, self.tick_decimals),
+                             sz=float_str(sell_size, self.size_decimals))
                 orders.append(order)
                 grid = dict(index=index, price=sell_price, order=order)
                 grids.append(grid)
                 index += 1
-                sell_price = round_to(sell_price * a ** 2, tick_size)
-                sell_size = round_to(sell_size * b, size_increment)
+                sell_price = round_to(sell_price * a ** 2, self.tick_size)
+                sell_size = round_to(sell_size * b, self.size_increment)
 
             index = grid_num // 2 - 1
-            buy_price = round_to(last * b ** 2, tick_size)
-            buy_size = round_to(ni * (a - 1) / (1 + maker_fee), size_increment)
-            while buy_size >= min_size and abs(index - grid_num // 2) <= grid_num // 2:
+            buy_price = round_to(last * b ** 2, self.tick_size)
+            buy_size = round_to(ni * (a - 1) / (1 + maker_fee), self.size_increment)
+            while buy_size >= self.min_size and abs(index - grid_num // 2) <= grid_num // 2:
                 order = dict(instId=self.spot_ID, tdMode='cash', side='buy', ordType='limit',
-                             clOrdId=self.coin + 'grid' + str(index), px=float_str(buy_price, tick_decimals),
-                             sz=float_str(buy_size, size_decimals))
+                             clOrdId=self.coin + 'buygrid' + str(index), px=float_str(buy_price, self.tick_decimals),
+                             sz=float_str(buy_size, self.size_decimals))
                 orders.append(order)
                 grid = dict(index=index, price=buy_price, order=order)
                 grids.append(grid)
                 index -= 1
-                buy_price = round_to(buy_price * b ** 2, tick_size)
-                buy_size = round_to(buy_size * a, size_increment)
+                buy_price = round_to(buy_price * b ** 2, self.tick_size)
+                buy_size = round_to(buy_size * a, self.size_increment)
             grids.sort(key=lambda x: x['index'])
 
             if orders:
                 orders = await self.tradeAPI.batch_order(orders)
                 for order in orders:
                     assert order['sCode'] == '0', fprint(order)
+                fprint(lang.placed_orders.format(len(orders), self.coin))
             else:
-                sell_size = round_to(ni * (1 - b), size_increment)
-                buy_size = round_to(ni * (a - 1) / (1 + maker_fee), size_increment)
-                fprint(f'{sell_size >= min_size=}, {buy_size >= min_size=}')
+                sell_size = round_to(ni * (1 - b), self.size_increment)
+                buy_size = round_to(ni * (a - 1) / (1 + maker_fee), self.size_increment)
+                fprint(f'{sell_size >= self.min_size=}, {buy_size >= self.min_size=}')
                 fprint(lang.use_larger_grid)
 
         await init_grids()
         index = grid_num // 2
 
-        async def move_grids():
+        async def shift_grids():
+            """Shift grids
+            """
             nonlocal grids, ni, last
             grids = []
             await cancel_orders()
@@ -168,8 +167,8 @@ class AMM(OKExAPI):
             async for current_order in subscribe(self.private_url, **kwargs):
                 current_order = current_order['data'][0]
                 timestamp = utcfrommillisecs(current_order['uTime'])
-                fprint(datetime_str(utc_to_local(timestamp)), current_order['clOrdId'], current_order['side'],
-                       current_order['px'], current_order['state'])
+                fprint(datetime_str(utc_to_local(timestamp)), self.coin, current_order['clOrdId'],
+                       current_order['side'], current_order['px'], current_order['state'])
                 # 下单成功
                 if current_order['state'] == 'filled':
                     index = current_order['clOrdId'][current_order['clOrdId'].find('grid') + 4:]
@@ -187,14 +186,14 @@ class AMM(OKExAPI):
                         Record.mycol.insert_one(mydict)
 
                         if abs(index - grid_num // 2) == grid_num // 2:
-                            await move_grids()
+                            await shift_grids()
                         else:
-                            buy_price = round_to(k / (n1 * a) ** 2, tick_size)
-                            buy_size = round_to(n1 * (a - 1) / (1 + maker_fee), size_increment)
-                            buy_price = float_str(buy_price, tick_decimals)
-                            buy_size = float_str(buy_size, size_decimals)
+                            buy_price = round_to(k / (n1 * a) ** 2, self.tick_size)
+                            buy_size = round_to(n1 * (a - 1) / (1 + maker_fee), self.size_increment)
+                            buy_price = float_str(buy_price, self.tick_decimals)
+                            buy_size = float_str(buy_size, self.size_decimals)
                             kwargs = dict(instId=self.spot_ID, side='buy', size=buy_size, price=buy_price,
-                                          order_type='limit', client_oid=self.coin + 'grid' + str(index - 1))
+                                          order_type='limit', client_oid=self.coin + 'buygrid' + str(index - 1))
                             buy_order = create_task(self.tradeAPI.take_spot_order(**kwargs))
                             buy_order = await buy_order
                             assert buy_order['ordId'] != '-1', fprint(buy_order)
@@ -208,14 +207,14 @@ class AMM(OKExAPI):
                         Record.mycol.insert_one(mydict)
 
                         if abs(index - grid_num // 2) == grid_num // 2:
-                            await move_grids()
+                            await shift_grids()
                         else:
-                            sell_price = round_to(k / (n1 * b) ** 2, tick_size)
-                            sell_price = float_str(sell_price, tick_decimals)
-                            sell_size = round_to(n1 * (1 - b), size_increment)
-                            sell_size = float_str(sell_size, size_decimals)
+                            sell_price = round_to(k / (n1 * b) ** 2, self.tick_size)
+                            sell_price = float_str(sell_price, self.tick_decimals)
+                            sell_size = round_to(n1 * (1 - b), self.size_increment)
+                            sell_size = float_str(sell_size, self.size_decimals)
                             kwargs = dict(instId=self.spot_ID, side='sell', size=sell_size, price=sell_price,
-                                          order_type='limit', client_oid=self.coin + 'grid' + str(index + 1))
+                                          order_type='limit', client_oid=self.coin + 'sellgrid' + str(index + 1))
                             sell_order = create_task(self.tradeAPI.take_spot_order(**kwargs))
                             sell_order = await sell_order
                             assert sell_order['ordId'] != '-1', fprint(sell_order)
@@ -225,25 +224,28 @@ class AMM(OKExAPI):
                     stat()
 
         except asyncio.CancelledError:
-            fprint(datetime_str(datetime.now()))
-            n1 = ni * pow(b, index - grid_num // 2)
-            price = round_to(k / n1 ** 2, tick_size)
-            fprint(f'{lang.grid_index}={index} {lang.spot_size}={n1:.{size_decimals}f} '
-                   f'{lang.price}={price:.{tick_decimals}f}')
-            orders = []
-            for grid in grids:
-                if grid['order']:
-                    orders.append(
-                        self.tradeAPI.get_order_info(instId=self.spot_ID, client_oid=grid['order']['clOrdId']))
-            assert len(orders) <= 60
-            orders = await gather(*orders)
-            for order in orders:
-                if order['state'] != 'live':
-                    index = order['clOrdId'][order['clOrdId'].find('grid') + 4:]
-                    index = int(index)
-                    n1 = ni * pow(b, index - grid_num // 2)
-                    price = round_to(k / n1 ** 2, tick_size)
-                    fprint(f"{lang.grid_index}={index} {lang.spot_size}={n1:.{size_decimals}f} "
-                           f"{lang.price}={price:.{tick_decimals}f} {lang.side}={order['side']} "
-                           f"{lang.state}={order['state']}")
-            await cancel_orders()
+            async def cleanup(index):
+                fprint(datetime_str(datetime.now()))
+                n1 = ni * pow(b, index - grid_num // 2)
+                price = round_to(k / n1 ** 2, self.tick_size)
+                fprint(f'{lang.grid_index}={index} {lang.spot_size}={n1:.{self.size_decimals}f} '
+                       f'{lang.price}={price:.{self.tick_decimals}f}')
+                orders = []
+                for grid in grids:
+                    if grid['order']:
+                        orders.append(
+                            self.tradeAPI.get_order_info(instId=self.spot_ID, client_oid=grid['order']['clOrdId']))
+                assert len(orders) <= 60
+                orders = await gather(*orders)
+                for order in orders:
+                    if order['state'] != 'live':
+                        index = order['clOrdId'][order['clOrdId'].find('grid') + 4:]
+                        index = int(index)
+                        n1 = ni * pow(b, index - grid_num // 2)
+                        price = round_to(k / n1 ** 2, self.tick_size)
+                        fprint(f"{lang.grid_index}={index} {lang.spot_size}={n1:.{self.size_decimals}f} "
+                               f"{lang.price}={price:.{self.tick_decimals}f} {lang.side}={order['side']} "
+                               f"{lang.state}={order['state']}")
+                await cancel_orders()
+
+            create_task(cleanup(index))
